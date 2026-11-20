@@ -15,13 +15,17 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] public float speed = 15f;
     [SerializeField] public float jumpingPower = 16f;
-    [SerializeField] private bool isFacingRight = false;
+    [SerializeField] private int jumpCount = 2;
+    [SerializeField] private bool canJump = true;
+    [SerializeField] private bool canDoubleJump;
+    private bool isFacingRight = false;
+    private int currentJumpCount;
 
     [Header("Dash Stats")]
     [SerializeField] private float dashPower;    
     [SerializeField] private float dashingTime;
     [SerializeField] private float dashingCooldown;
-    [SerializeField] public int dashCharges = 1;
+    //[SerializeField] public int dashCharges = 1;
     private bool canDash = true;
     private bool isDashing = false;
     private Rigidbody2D rb;
@@ -45,6 +49,8 @@ public class PlayerMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         sprite = GetComponent<SpriteRenderer>();
+
+        currentJumpCount = jumpCount;
     }
 
     // Update is called once per frame
@@ -52,22 +58,54 @@ public class PlayerMovement : MonoBehaviour
     {
         horizontal = Input.GetAxisRaw("Horizontal");
 
-        if (Input.GetButtonDown("Jump") && IsGrounded() && !isDashing)
+        if (Input.GetButtonDown("Jump") && IsGrounded() && !isDashing && canJump)
         {
             rb.linearVelocityY = jumpingPower;
         }
-        else if (Input.GetButtonDown("Jump") && IsOnWall() && !isDashing)
+        else if (Input.GetButtonDown("Jump") && IsOnWall() && !isDashing && canJump)
         {
             rb.linearVelocityY = jumpingPower;
+
+        }
+        else if (Input.GetButtonDown("Jump") && (!IsGrounded() && !IsOnWall()) && !isDashing && canJump)
+        {
+            currentJumpCount--;
+            rb.linearVelocityY = jumpingPower;
+            DoubleJumpReset();
         }
 
 
-        if (Input.GetKeyDown(KeyCode.LeftShift) && canDash && (dashCharges > 0) && !isDashing)
+
+        if (Input.GetKeyDown(KeyCode.LeftShift) && canDash && !isDashing)
         {
             
             StartCoroutine(Dash());
         }
         Flip();
+    }
+
+    private void DoubleJumpReset()
+    {
+        if (currentJumpCount > 0)
+            canJump = true;
+        else if (currentJumpCount <= 0)
+        {
+            if (!IsGrounded() && !IsOnWall())
+            {
+                canJump = false;
+
+            }
+            else
+            {
+                
+                canJump = true;
+                Debug.Log("great oogily boogily");
+                currentJumpCount = jumpCount;
+            }
+           
+        }
+
+
     }
 
     private float getDirection()
@@ -76,14 +114,11 @@ public class PlayerMovement : MonoBehaviour
     }
     private IEnumerator Dash()
     {
-        bool airDash = false;
-        if (IsGrounded())
-            airDash = false;
-        else
-            airDash = true;
+        bool airDash = !IsGrounded();
+
         canDash = false;
         isDashing = true;
-        dashCharges--;
+        //dashCharges--;
         float originalGravity = rb.gravityScale;
         rb.gravityScale = 0f;
         float dashDirection = getDirection();
@@ -93,11 +128,19 @@ public class PlayerMovement : MonoBehaviour
         rb.gravityScale = originalGravity;
         isDashing = false;
         yield return new WaitForSeconds(dashingCooldown);
-        canDash = true;
-        if (!airDash)
+        while (!canDash)
         {
-            dashCharges++;
-        } 
+            if (IsGrounded() || IsOnWall())
+                canDash = true;
+
+            yield return null;
+        }
+        
+
+        //if (!airDash)
+        //{
+            //dashCharges++;
+        //} 
     }
 
     private void FixedUpdate()
@@ -140,7 +183,7 @@ public class PlayerMovement : MonoBehaviour
         Gizmos.DrawWireSphere (transform.position + (Vector3)groundCheckOffset, groundCheckRadius);
         Gizmos.DrawWireSphere (transform.position + (Vector3)wallCheckOffset1, wallCheckRadius1);
         Gizmos.DrawWireSphere (transform.position - (Vector3)wallCheckOffset1, wallCheckRadius1);
-        Gizmos.DrawLine(transform.position, transform.position * getDirection());
+        //Gizmos.DrawLine(transform.position, transform.position * getDirection());
 
     }
 }
