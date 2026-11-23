@@ -5,19 +5,22 @@ using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Rendering;
-
 [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
+
+[RequireComponent(typeof(SpriteRenderer))]
 public class PlayerMovement : MonoBehaviour
 {
     
     private float horizontal;
     [Header("Movement Stats")]
 
-    [SerializeField] public float speed = 15f;
+    [SerializeField] public float topSpeed = 15f;
+    [SerializeField] public float groundAcceleration = 29f;
+    [SerializeField] public float aerialAcceleration = 0f;
     [SerializeField] public float jumpingPower = 16f;
     [SerializeField] private int jumpCount = 2;
-    [SerializeField] private bool canJump = true;
-    [SerializeField] private bool canDoubleJump;
+    //[SerializeField] private bool canDoubleJump;
+    //[SerializeField] private float jumpDelay = 2;
     private bool isFacingRight = false;
     private int currentJumpCount;
 
@@ -36,13 +39,11 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
 
 
-    [Header("Wall Check1")]
+    [Header("Wall Check")]
     [SerializeField] private Vector2 wallCheckOffset1;
     [SerializeField] private float wallCheckRadius1;
-    
-    [Header("Wall Check2")]
-    [SerializeField] private Vector2 wallCheckOffset2;
-    [SerializeField] private float wallCheckRadius2;
+
+    private bool CanJump => currentJumpCount > 0;
 
 
     private void Awake()
@@ -58,20 +59,27 @@ public class PlayerMovement : MonoBehaviour
     {
         horizontal = Input.GetAxisRaw("Horizontal");
 
-        if (Input.GetButtonDown("Jump") && IsGrounded() && !isDashing && canJump)
+        if (Input.GetButtonDown("Jump") && IsGrounded() && !isDashing && CanJump)
         {
             rb.linearVelocityY = jumpingPower;
         }
-        else if (Input.GetButtonDown("Jump") && IsOnWall() && !isDashing && canJump)
+        else if (Input.GetButtonDown("Jump") && IsOnWall() && !isDashing && CanJump)
         {
             rb.linearVelocityY = jumpingPower;
 
         }
-        else if (Input.GetButtonDown("Jump") && (!IsGrounded() && !IsOnWall()) && !isDashing && canJump)
+        else if (Input.GetButtonDown("Jump") && (!IsGrounded() && !IsOnWall()) && !isDashing && CanJump)
         {
             currentJumpCount--;
+            Debug.Log("-jump");
             rb.linearVelocityY = jumpingPower;
-            DoubleJumpReset();
+        }
+
+        if (IsGrounded())
+        {
+                Debug.Log("great oogily boogily");
+                currentJumpCount = jumpCount;
+
         }
 
 
@@ -84,29 +92,30 @@ public class PlayerMovement : MonoBehaviour
         Flip();
     }
 
-    private void DoubleJumpReset()
-    {
-        if (currentJumpCount > 0)
-            canJump = true;
-        else if (currentJumpCount <= 0)
-        {
-            if (!IsGrounded() && !IsOnWall())
-            {
-                canJump = false;
 
-            }
-            else
-            {
-                
-                canJump = true;
-                Debug.Log("great oogily boogily");
-                currentJumpCount = jumpCount;
-            }
-           
-        }
+    //IEnumerator JumpTime()
+    //{
+    //    if ((currentJumpCount > 0) && !IsGrounded() && !IsOnWall())
+    //    {
+    //        yield return new WaitForSeconds(jumpDelay);
+    //        if (currentJumpCount <= 0 && jumpDelay > 0)
+    //        {
+    //            canJump = true;
+    //        }
+    //        else
+    //        {
+    //            canJump = false;
 
+    //        }
+    //        if (jumpDelay = 0)
+    //        {
 
-    }
+    //        }
+
+    //    }
+            
+        
+    //}
 
     private float getDirection()
     {
@@ -146,7 +155,10 @@ public class PlayerMovement : MonoBehaviour
     private void FixedUpdate()
     {
         if (isDashing) return;
-        rb.linearVelocityX = horizontal * speed;
+        rb.AddForceX(horizontal * (IsGrounded() ? groundAcceleration: aerialAcceleration));
+
+        rb.linearVelocityX = Mathf.Clamp(rb.linearVelocityX, -topSpeed, topSpeed);
+        
     }
 
     public bool IsGrounded()
