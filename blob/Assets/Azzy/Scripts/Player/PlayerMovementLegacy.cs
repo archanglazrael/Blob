@@ -10,22 +10,22 @@ using UnityEngine.Rendering;
 [RequireComponent(typeof(SpriteRenderer))]
 public class PlayerMovement : MonoBehaviour
 {
-    
+
     private float horizontal;
     [Header("Movement Stats")]
-
-    [SerializeField] public float topSpeed = 15f;
+    [SerializeField] public float aerialSpeed = 15f;
+    [SerializeField] public float topGroundSpeed = 15f;
     [SerializeField] public float groundAcceleration = 29f;
-    [SerializeField] public float aerialAcceleration = 0f;
     [SerializeField] public float jumpingPower = 16f;
     [SerializeField] private int jumpCount = 2;
     //[SerializeField] private bool canDoubleJump;
     //[SerializeField] private float jumpDelay = 2;
     private bool isFacingRight = false;
     private int currentJumpCount;
+    public float placeholder;
 
     [Header("Dash Stats")]
-    [SerializeField] private float dashPower;    
+    [SerializeField] private float dashPower;
     [SerializeField] private float dashingTime;
     [SerializeField] private float dashingCooldown;
     //[SerializeField] public int dashCharges = 1;
@@ -77,8 +77,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (IsGrounded())
         {
-                Debug.Log("great oogily boogily");
-                currentJumpCount = jumpCount;
+            Debug.Log("great oogily boogily");
+            currentJumpCount = jumpCount;
 
         }
 
@@ -86,7 +86,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.LeftShift) && canDash && !isDashing)
         {
-            
+
             StartCoroutine(Dash());
         }
         Flip();
@@ -113,8 +113,8 @@ public class PlayerMovement : MonoBehaviour
     //        }
 
     //    }
-            
-        
+
+
     //}
 
     private float getDirection()
@@ -144,21 +144,30 @@ public class PlayerMovement : MonoBehaviour
 
             yield return null;
         }
-        
+
 
         //if (!airDash)
         //{
-            //dashCharges++;
+        //dashCharges++;
         //} 
     }
 
     private void FixedUpdate()
     {
         if (isDashing) return;
-        rb.AddForceX(horizontal * (IsGrounded() ? groundAcceleration: aerialAcceleration));
+        rb.AddForceX(horizontal * (IsGrounded() ? groundAcceleration : placeholder));
 
-        rb.linearVelocityX = Mathf.Clamp(rb.linearVelocityX, -topSpeed, topSpeed);
-        
+
+        if (IsGrounded())
+        {
+            rb.linearVelocityX = Mathf.Clamp(rb.linearVelocityX, -topGroundSpeed, topGroundSpeed);
+
+        }
+        else
+        {
+            rb.linearVelocityX = horizontal * aerialSpeed;
+        }
+
     }
 
     public bool IsGrounded()
@@ -166,7 +175,7 @@ public class PlayerMovement : MonoBehaviour
         return Physics2D.OverlapCircle(transform.position + (Vector3)groundCheckOffset, groundCheckRadius, groundLayer);
     }
 
-    
+
 
     private bool IsOnWall()
     {
@@ -178,7 +187,7 @@ public class PlayerMovement : MonoBehaviour
         {
             return false;
         }
-        
+
     }
 
     private void Flip()
@@ -186,15 +195,15 @@ public class PlayerMovement : MonoBehaviour
         if (isFacingRight && horizontal < 0f || !isFacingRight && horizontal > 0f)
         {
             isFacingRight = !isFacingRight;
-            sprite.flipX =! isFacingRight;
+            sprite.flipX = !isFacingRight;
         }
     }
 
     private void OnDrawGizmos()
     {
-        Gizmos.DrawWireSphere (transform.position + (Vector3)groundCheckOffset, groundCheckRadius);
-        Gizmos.DrawWireSphere (transform.position + (Vector3)wallCheckOffset1, wallCheckRadius1);
-        Gizmos.DrawWireSphere (transform.position - (Vector3)wallCheckOffset1, wallCheckRadius1);
+        Gizmos.DrawWireSphere(transform.position + (Vector3)groundCheckOffset, groundCheckRadius);
+        Gizmos.DrawWireSphere(transform.position + (Vector3)wallCheckOffset1, wallCheckRadius1);
+        Gizmos.DrawWireSphere(transform.position - (Vector3)wallCheckOffset1, wallCheckRadius1);
         //Gizmos.DrawLine(transform.position, transform.position * getDirection());
 
     }
